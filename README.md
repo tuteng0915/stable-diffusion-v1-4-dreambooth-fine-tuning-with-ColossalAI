@@ -115,9 +115,21 @@ Dreambooth lacks an automated method for evaluation. Therefore, after the fine-t
 
 ## Result
 
+![](./result.png)
 
+The plot demonstrats of the result of fine-tuning, anchored by the prompt "a photo of my cat."
 
+First Row (Instance) presents the reference images used for training. These images are nearly identical photographs of an American Shorthair cat, providing the targeted visual context intended to guide the fine-tuning process.
 
+Second Row (Baseline) presents the baseline model's output prior to fine-tuning. Here, the model, prompted with the same phrase, generates a variety of cat breeds, illustrating its generalized understanding of cats without the specificity introduced by fine-tuning.
+
+Third Row (Result) presents the results post-fine-tuning. The model now consistently reproduces the distinctive features of the American Shorthair cat, adhering closely to the characteristics of the cat featured in the training instances.
+
+The results showcased here are direct outputs from the model, with no cherry-picking involved
+
+## Low rl & Few step
+
+In this experiment, I opted for an extremely low learning rate and a limited number of steps — each image went through the model only 5 times, with a learning rate set at 5e-8. This approach was necessary to avoid the model learning too much too quickly, which could lead to overfitting and instability, issues that emerged when using the higher suggested learning rate of 5e-6.
 
 ## Preparation
 
@@ -169,7 +181,7 @@ torchrun --nproc_per_node 1 train_dreambooth_colossalai.py \
   --resolution=512 \
   --train_batch_size=1 \
   --mixed_precision="fp16" \
-  --learning_rate=1e-6 \
+  --learning_rate=5e-8 \
   --lr_scheduler="constant" \
   --lr_warmup_steps=0 \
   --max_train_steps=20
