@@ -42,10 +42,6 @@ def import_model_class_from_model_name_or_path(pretrained_model_name_or_path: st
         from transformers import CLIPTextModel
 
         return CLIPTextModel
-    elif model_class == "RobertaSeriesModelWithTransformation":
-        from diffusers.pipelines.alt_diffusion.modeling_roberta_series import RobertaSeriesModelWithTransformation
-
-        return RobertaSeriesModelWithTransformation
     else:
         raise ValueError(f"{model_class} is not supported.")
 
@@ -369,20 +365,6 @@ def get_full_repo_name(model_id: str, organization: Optional[str] = None, token:
     else:
         return f"{organization}/{model_id}"
 
-    
-def copy_directory_contents(src, dst, ignore_pattern=None):
-    if not os.path.exists(dst):
-        os.makedirs(dst)
-    for item in os.listdir(src):
-        s = os.path.join(src, item)
-        d = os.path.join(dst, item)
-        if ignore_pattern and os.path.isfile(s) and item.startswith(ignore_pattern):
-            continue
-        if os.path.isdir(s):
-            shutil.copytree(s, d, ignore=shutil.ignore_patterns(ignore_pattern))
-        else:
-            shutil.copy2(s, d)
-    
 
 def main(args):
     if args.seed is None:
@@ -722,11 +704,11 @@ def main(args):
         booster.save_model(unet, os.path.join(os.path.join(args.output_dir, "unet"), "diffusion_pytorch_model.bin"))
         logger.info(f"Saving model checkpoint to {args.output_dir} on rank {local_rank}")
 
+
 if __name__ == "__main__":
     args = parse_args()
     main(args)
-    
-    
+        
     # Inference
     os.makedirs("result", exist_ok=True)
     import torch
@@ -735,14 +717,14 @@ if __name__ == "__main__":
     prompt = args.instance_prompt
     
     pipeline = DiffusionPipeline.from_pretrained("./output", safety_checker=None).to("cuda")
-    for i in range(1,5):
+    for i in range(1, 5):
         image = pipeline(prompt, num_inference_steps=50, guidance_scale=7.5).images[0]
         image.save("./result/output-"+str(i)+".png")
 
     del pipeline
 
     pipeline = DiffusionPipeline.from_pretrained(args.pretrained_model_name_or_path, safety_checker=None).to("cuda")
-    for i in range(1,5):
+    for i in range(1, 5):
         image = pipeline(prompt, num_inference_steps=50, guidance_scale=7.5).images[0]
         image.save("./result/baseline-"+str(i)+".png")
 
