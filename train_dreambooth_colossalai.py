@@ -331,6 +331,7 @@ def main(args):
     
     dir_list = ["feature_extractor", "safety_checker", "scheduler", "text_encoder", "tokenizer", "vae"]
     if local_rank == 0:
+        os.makedirs(args.output_dir, exist_ok=True)
         shutil.rmtree(args.output_dir)
         os.makedirs(args.output_dir, exist_ok=True)
         
