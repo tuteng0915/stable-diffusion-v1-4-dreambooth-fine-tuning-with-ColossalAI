@@ -1,5 +1,17 @@
 # stable-diffusion-v1-4-dreambooth-fine-tuning-with-ColossalAI
 
+Download model
+
+```bash
+sudo apt install git-lfs
+git lfs install
+
+mkdir model
+cd model
+git clone https://huggingface.co/CompVis/stable-diffusion-v1-4
+```
+
+
 
 # [DreamBooth](https://github.com/huggingface/diffusers/tree/main/examples/dreambooth) by [colossalai](https://github.com/hpcaitech/ColossalAI.git)
 

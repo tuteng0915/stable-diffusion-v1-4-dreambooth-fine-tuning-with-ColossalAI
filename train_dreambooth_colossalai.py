@@ -369,6 +369,20 @@ def get_full_repo_name(model_id: str, organization: Optional[str] = None, token:
     else:
         return f"{organization}/{model_id}"
 
+    
+def copy_directory_contents(src, dst, ignore_pattern=None):
+    if not os.path.exists(dst):
+        os.makedirs(dst)
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if ignore_pattern and os.path.isfile(s) and item.startswith(ignore_pattern):
+            continue
+        if os.path.isdir(s):
+            shutil.copytree(s, d, ignore=shutil.ignore_patterns(ignore_pattern))
+        else:
+            shutil.copy2(s, d)
+    
 
 def main(args):
     if args.seed is None:
@@ -580,6 +594,7 @@ def main(args):
     # as these models are only used for inference, keeping weights in full precision is not required.
     vae.to(get_accelerator().get_current_device(), dtype=weight_dtype)
     text_encoder.to(get_accelerator().get_current_device(), dtype=weight_dtype)
+    unet.to(get_accelerator().get_current_device(), dtype=weight_dtype)
 
     # We need to recalculate our total training steps as the size of the training dataloader may have changed.
     num_update_steps_per_epoch = math.ceil(len(train_dataloader))
@@ -631,9 +646,11 @@ def main(args):
             # Add noise to the latents according to the noise magnitude at each timestep
             # (this is the forward diffusion process)
             noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
-
+            noisy_latents = noisy_latents.to(get_accelerator().get_current_device(), dtype=weight_dtype)
+            
             # Get the text embedding for conditioning
             encoder_hidden_states = text_encoder(batch["input_ids"])[0]
+            encoder_hidden_states = encoder_hidden_states.to(get_accelerator().get_current_device(), dtype=weight_dtype)
 
             # Predict the noise residual
             model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
@@ -687,16 +704,45 @@ def main(args):
             if global_step >= args.max_train_steps:
                 break
     torch.cuda.synchronize()
-
-    booster.save_model(unet, os.path.join(args.output_dir, "diffusion_pytorch_model.bin"))
-    logger.info(f"Saving model checkpoint to {args.output_dir} on rank {local_rank}")
+    
+    
+    dir_list = ["feature_extractor", "safety_checker", "scheduler", "text_encoder", "tokenizer", "vae"]
     if local_rank == 0:
-        if not os.path.exists(os.path.join(args.output_dir, "config.json")):
-            shutil.copy(os.path.join(args.pretrained_model_name_or_path, "unet/config.json"), args.output_dir)
-        if args.push_to_hub:
-            repo.push_to_hub(commit_message="End of training", blocking=False, auto_lfs_prune=True)
+        shutil.rmtree(args.output_dir)
+        os.makedirs(args.output_dir, exist_ok=True)
+        
+        for d in dir_list:
+            shutil.copytree(os.path.join(args.pretrained_model_name_or_path, d), os.path.join(args.output_dir, d))
 
+        shutil.copy(os.path.join(args.pretrained_model_name_or_path, "model_index.json"), args.output_dir)
+        
+        os.makedirs(os.path.join(args.output_dir, "unet"), exist_ok=True)
+        shutil.copy(os.path.join(args.pretrained_model_name_or_path, "unet/config.json"), os.path.join(args.output_dir, "unet"))
+
+        booster.save_model(unet, os.path.join(os.path.join(args.output_dir, "unet"), "diffusion_pytorch_model.bin"))
+        logger.info(f"Saving model checkpoint to {args.output_dir} on rank {local_rank}")
 
 if __name__ == "__main__":
     args = parse_args()
     main(args)
+    
+    
+    # Inference
+    os.makedirs("result", exist_ok=True)
+    import torch
+    from diffusers import DiffusionPipeline
+
+    prompt = args.instance_prompt
+    
+    pipeline = DiffusionPipeline.from_pretrained("./output", safety_checker=None).to("cuda")
+    for i in range(1,5):
+        image = pipeline(prompt, num_inference_steps=50, guidance_scale=7.5).images[0]
+        image.save("./result/output-"+str(i)+".png")
+
+    del pipeline
+
+    pipeline = DiffusionPipeline.from_pretrained(args.pretrained_model_name_or_path, safety_checker=None).to("cuda")
+    for i in range(1,5):
+        image = pipeline(prompt, num_inference_steps=50, guidance_scale=7.5).images[0]
+        image.save("./result/baseline-"+str(i)+".png")
+
