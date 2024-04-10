@@ -1,5 +1,9 @@
 # Stable Diffusionv 1.4 Dreambooth fine-tuning with ColossalAI
 
+https://github.com/tuteng0915/stable-diffusion-dreambooth-fine-tuning-with-ColossalAI
+
+This project demonstrates the fine-tuning of the Stable Diffusion v1.4 model for personalized image generation using Dreambooth
+
 ## Experiment Environment
 
 - **Operating System:** Ubuntu 20.04
@@ -15,6 +19,15 @@
   - See more in `./requirements.txt`
 - **GPU Model:** NVIDIA RTX 3090 (24GB) * 1
 - **CPU:** 24 vCPU AMD EPYC 7642 48-Core Processor
+
+## Data used in Experiment 
+
+For the purpose of fine-tuning via Dreambooth, a very small dataset was used, comprising 4 nearly identical images of a silver gradient cat, placed in the `./instance/` directory. 
+
+## Acknowledgments
+
+This experiment was developed based on an official example provided by ColossalAI, with the primary effort being the adjustment of code and runtime parameters to ensure successful execution with limited resources. Due to the dependency on specific versions of CUDA and even C++ builders, I cannot guarantee the robustness of the code across all environments. Should you encounter any issues while using it, please feel free to contact me.
+
 
 ## Preparation
 
@@ -48,14 +61,6 @@ pip install -v --disable-pip-version-check --no-build-isolation --no-cache-dir .
 pip install -r requirements.txt
 pip install colossalai
 ```
-
-## Data used in Experiment 
-
-For the purpose of fine-tuning via Dreambooth, a very small dataset was used, comprising 4 nearly identical images of a silver gradient cat, placed in the `./instance/` directory. 
-
-## Acknowledgments
-
-This experiment was developed based on an official example provided by ColossalAI, with the primary effort being the adjustment of code and runtime parameters to ensure successful execution with limited resources. Due to the dependency on specific versions of CUDA and even C++ builders, I cannot guarantee the robustness of the code across all environments. Should you encounter any issues while using it, please feel free to contact me for assistance.
 
 ## Run
 
