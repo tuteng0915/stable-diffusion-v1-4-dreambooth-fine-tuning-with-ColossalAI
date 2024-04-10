@@ -148,23 +148,14 @@ def parse_args(input_args=None):
     parser.add_argument(
         "--use_8bit_adam", action="store_true", help="Whether or not to use 8-bit Adam from bitsandbytes."
     )
-
     parser.add_argument("--max_grad_norm", default=1.0, type=float, help="Max gradient norm.")
-    parser.add_argument("--push_to_hub", action="store_true", help="Whether or not to push the model to the Hub.")
-    parser.add_argument("--hub_token", type=str, default=None, help="The token to use to push to the Model Hub.")
     parser.add_argument("--test_run", default=False, help="Whether to use a smaller dataset for test run.")
-    parser.add_argument(
-        "--hub_model_id",
-        type=str,
-        default=None,
-        help="The name of the repository to keep in sync with the local `output_dir`.",
-    )
     parser.add_argument(
         "-p",
         "--plugin",
         type=str,
         default="torch_ddp",
-        choices=["torch_ddp", "torch_ddp_fp16", "gemini", "low_level_zero"],
+        choices=["torch_ddp"],
         help="plugin to use",
     )
     parser.add_argument(

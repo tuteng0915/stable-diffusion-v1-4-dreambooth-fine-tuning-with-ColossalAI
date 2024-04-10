@@ -10,7 +10,7 @@ torchrun --nproc_per_node 1 train_dreambooth_colossalai.py \
   --resolution=512 \
   --train_batch_size=1 \
   --mixed_precision="fp16" \
-  --learning_rate=1e-6 \
+  --learning_rate=5e-8 \
   --lr_scheduler="constant" \
   --lr_warmup_steps=0 \
   --max_train_steps=20

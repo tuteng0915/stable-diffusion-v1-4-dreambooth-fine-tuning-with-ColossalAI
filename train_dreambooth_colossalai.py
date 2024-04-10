@@ -12,12 +12,8 @@ import torch.nn.functional as F
 import torch.utils.checkpoint
 from diffusers import AutoencoderKL, DDPMScheduler, DiffusionPipeline, UNet2DConditionModel
 from diffusers.optimization import get_scheduler
-from huggingface_hub import HfFolder, Repository, create_repo, whoami
-from PIL import Image
-from torch.utils.data import Dataset
-from torchvision import transforms
 from tqdm.auto import tqdm
-from transformers import AutoTokenizer, PretrainedConfig, CLIPTextModel
+from transformers import AutoTokenizer, CLIPTextModel
 
 import colossalai
 from colossalai.accelerator import get_accelerator
@@ -31,17 +27,6 @@ from utils.datasets import DreamBoothDataset, PromptDataset
 
 disable_existing_loggers()
 logger = get_dist_logger()
-
-
-def get_full_repo_name(model_id: str, organization: Optional[str] = None, token: Optional[str] = None):
-    if token is None:
-        token = HfFolder.get_token()
-    if organization is None:
-        username = whoami(token)["name"]
-        return f"{username}/{model_id}"
-    else:
-        return f"{organization}/{model_id}"
-
 
 def main(args):
     if args.seed is None:
@@ -90,22 +75,8 @@ def main(args):
 
             del pipeline
 
-    # Handle the repository creation
     if local_rank == 0:
-        if args.push_to_hub:
-            if args.hub_model_id is None:
-                repo_name = get_full_repo_name(Path(args.output_dir).name, token=args.hub_token)
-            else:
-                repo_name = args.hub_model_id
-            create_repo(repo_name, exist_ok=True, token=args.hub_token)
-            repo = Repository(args.output_dir, clone_from=repo_name, token=args.hub_token)
-
-            with open(os.path.join(args.output_dir, ".gitignore"), "w+") as gitignore:
-                if "step_*" not in gitignore:
-                    gitignore.write("step_*\n")
-                if "epoch_*" not in gitignore:
-                    gitignore.write("epoch_*\n")
-        elif args.output_dir is not None:
+        if args.output_dir is not None:
             os.makedirs(args.output_dir, exist_ok=True)
 
     # Load the tokenizer
@@ -166,14 +137,8 @@ def main(args):
     # Use Booster API to use Gemini/Zero with ColossalAI
 
     booster_kwargs = {}
-    if args.plugin == "torch_ddp_fp16":
-        booster_kwargs["mixed_precision"] = "fp16"
     if args.plugin.startswith("torch_ddp"):
         plugin = TorchDDPPlugin()
-    elif args.plugin == "gemini":
-        plugin = GeminiPlugin(offload_optim_frac=args.offload_optim_frac, strict_ddp_mode=True, initial_scale=2**5)
-    elif args.plugin == "low_level_zero":
-        plugin = LowLevelZeroPlugin(initial_scale=2**5)
 
     booster = Booster(plugin=plugin, **booster_kwargs)
 
